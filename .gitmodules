@@ -1,0 +1,3 @@
+[submodule "pyopf_native/LibOPFcpp"]
+	path = pyopf_native/LibOPFcpp
+	url = https://github.com/thierrypin/LibOPFcpp
