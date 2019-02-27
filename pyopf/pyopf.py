@@ -76,7 +76,7 @@ class OPF(object):
         :param y: int vector representing labels (for supervised algorithm).
         :return: None
         '''
-        if len(y == 0):
+        if len(y) == 0:
             raise ValueError("Data size must be higher than 0.")
         # Check label type
         el = y[0]
@@ -98,7 +98,7 @@ class OPF(object):
         preds = self.opf.predict(X)
 
         if self.non_int_label:
-            preds = self.label_encoder.transform(preds)
+            preds = self.label_encoder.inverse_transform(preds)
 
         return preds
 
