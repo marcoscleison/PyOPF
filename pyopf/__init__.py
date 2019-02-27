@@ -13,5 +13,4 @@ Copyright 2019 PyOPF Contributors
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-from pyopf_native import *
-from .pyopf import *
+from .pyopf import OPF
