@@ -14,7 +14,7 @@ Copyright 2019 PyOPF Contributors
    limitations under the License.
 """
 import pyopf_native as opfn
-
+from sklearn.preprocessing import LabelEncoder
 
 def raise_(ex):
     '''
@@ -47,6 +47,10 @@ class OPF(object):
         self.precomputed = precomputed
         self.algorithm = algorithm
 
+        # Handle non-integer label types
+        self.non_int_label = False
+        self.label_encoder = None
+
         self.algorithm_driver = {
             "supervised": self._create_supervised_opf,
             "unsupervised": lambda: raise_(NotImplementedError("Unsupervised OPF is not implemented yet."))
@@ -72,7 +76,18 @@ class OPF(object):
         :param y: int vector representing labels (for supervised algorithm).
         :return: None
         '''
-        self.opf.fit(X, y)
+        if len(y == 0):
+            raise ValueError("Data size must be higher than 0.")
+        # Check label type
+        el = y[0]
+        if not isinstance(el, int):
+            self.non_int_label = True
+            self.label_encoder = LabelEncoder()
+            y_ = self.label_encoder.fit_transform(y)
+        else:
+            y_ = y
+            
+        self.opf.fit(X, y_)
 
     def predict(self, X):
         """
@@ -80,7 +95,12 @@ class OPF(object):
         :param X: Input matrix features.
         :return: Int vector with labels (for supervised algorithm).
         """
-        return self.opf.predict(X)
+        preds = self.opf.predict(X)
+
+        if self.non_int_label:
+            preds = self.label_encoder.transform(preds)
+
+        return preds
 
     def save_weights(self, driver=None):
         pass
