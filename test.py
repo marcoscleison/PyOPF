@@ -1,4 +1,4 @@
-from pyopf import OPF
+from pyopf import OPFClassifier
 import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.metrics import accuracy_score
@@ -23,7 +23,7 @@ def my_cos(x,y):
 
 l =load_iris()
 
-opf = OPF("cos")
+opf = OPFClassifier("cosine")
 # opf = OPF('cos')
 x = np.array(l['data'])
 y = l['target']

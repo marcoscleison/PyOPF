@@ -44,27 +44,27 @@ double Xgn(double x, double q)
 std::function<py::array(py::array, double)> qGenFunc(std::function<double(double, double)> Ops)
 {
 
-    //Aqui eu retorno uma função anônima
+    // Return an anonymous function
     return [Ops](py::array_t<double> x, double q) {
-        // pego o parâmetro com array numpy de entrada.
+        // get the numpy array input parameter
         py::buffer_info infox = x.request();
-        //acesso o conteúdo do array do numpy.
+        // access array contents
         auto ptrx = static_cast<double *>(infox.ptr);
-        // pego o tamanho
+        // acquire its size
         size_t sz = infox.size;
 
-        //crio um array do numpy de retorno. O tamanho do arrayé igual ao tamanho do array de entrada
+        // make a return numpy array -- its size equals the input array's
         py::array_t<double> result = py::array_t<double>(infox);
 
         auto buf3r = result.request();
-        // pego ponteiro na memória alocado.
+        // access alloc'd memory pointer
         double *ptr3 = (double *)buf3r.ptr;
 
-        // Executo a função em série e armazeno resultado no ponteiro de retorno
+        // execute the function in series and store the result in the return pointer
         for (size_t idx = 0; idx < sz; idx++)
             ptr3[idx] = Ops(ptrx[idx], q);
 
-        //        retorno o array com resultado.
+        // result array
         return result;
     };
 }
@@ -107,46 +107,47 @@ opf::distance_function<T> distance_adaptor(py::function dist_func)
     };
 }
 
-class SupervisedOpfFloatProxy
+opf::distance_function<float> get_distance(std::string& distance)
+{
+    if (distance == "cosine")
+        return opf::cosine_distance<float>;
+    else if (distance == "euclidean")
+        return opf::euclidean_distance<float>;
+    else
+        return opf::euclidean_distance<float>;
+}
+
+
+class SupervisedFloatOpf
 {
   public:
-    SupervisedOpfFloatProxy()
+    SupervisedFloatOpf()
     {
         this->precomputed = false;
-        this->opf = new opf::SupervisedOPF<float>(this->precomputed, opf::cosine_distance<float>);
-        //        std::cout << "Constructor" << std::endl;
-        // this->distance = nullptr;
+        this->distance = opf::euclidean_distance<float>;
+        this->opf = opf::SupervisedOPF<float>(this->precomputed, this->distance);
     }
-
-    void set_distance(py::object distance)
+    SupervisedFloatOpf(bool precomputed, py::object distance)
     {
-
+        this->precomputed = precomputed;
         this->distance = distance_adaptor<float>(distance);
-        delete this->opf;
-        this->opf = new opf::SupervisedOPF<float>(this->precomputed, this->distance);
+        this->opf = opf::SupervisedOPF<float>(this->precomputed, this->distance);
     }
 
-    void set_distance(opf::distance_function<float> distance)
+    SupervisedFloatOpf(bool precomputed, std::string &distance)
     {
-        this->distance = distance;
-        delete this->opf;
-        this->opf = new opf::SupervisedOPF<float>(this->precomputed, this->distance);
-    }
-    void set_precomputed(bool precompute)
-    {
-        this->precomputed = precompute;
-        delete this->opf;
-        this->opf = new opf::SupervisedOPF<float>(this->precomputed, this->distance);
+        this->distance = get_distance(distance);
+        this->precomputed = precomputed;
+        this->opf = opf::SupervisedOPF<float>(this->precomputed, this->distance);
     }
 
     void fit(py::array_t<float> &train_data, std::vector<int> &labels)
     {
-        //        std::cout << "Fit" << std::endl;
         const auto train_data_info = train_data.request();
         auto train_ptr = static_cast<float *>(train_data_info.ptr);
 
         opf::Mat<float> train_mat(train_ptr, train_data.shape(0), train_data.shape(1));
-        this->opf->fit(train_mat, labels);
+        this->opf.fit(train_mat, labels);
     }
 
     std::vector<int> predict(py::array_t<float> &test_data)
@@ -155,45 +156,26 @@ class SupervisedOpfFloatProxy
         auto test_ptr = static_cast<float *>(test_data_info.ptr);
 
         opf::Mat<float> test_mat(test_ptr, test_data.shape(0), test_data.shape(1));
-        auto res = this->opf->predict(test_mat);
+        auto res = this->opf.predict(test_mat);
         return res;
     }
 
   private:
-    opf::SupervisedOPF<float> *opf;
+    opf::SupervisedOPF<float> opf;
     opf::distance_function<float> distance = nullptr;
     bool precomputed = false;
 };
 
-SupervisedOpfFloatProxy *OpfFactory(bool precomputed, std::string &distance)
+
+SupervisedFloatOpf OpfFactory(bool precomputed, std::string &distance)
 {
-
-    SupervisedOpfFloatProxy *opfp = new SupervisedOpfFloatProxy();
-
-    if (distance == "cos")
-    {
-
-        opfp->set_distance(opf::cosine_distance<float>);
-        opfp->set_precomputed(precomputed);
-    }
-    else if (distance == "euclidean")
-    {
-        opfp->set_distance(opf::euclidean_distance<float>);
-        opfp->set_precomputed(precomputed);
-    }
-    else
-    {
-        opfp->set_distance(opf::euclidean_distance<float>);
-        opfp->set_precomputed(precomputed);
-    }
+    SupervisedFloatOpf opfp(precomputed, distance);
     return opfp;
 }
 
-SupervisedOpfFloatProxy *OpfFactory(bool precomputed, py::object &distance)
+SupervisedFloatOpf OpfFactory(bool precomputed, py::object &distance)
 {
-    SupervisedOpfFloatProxy *opfp = new SupervisedOpfFloatProxy();
-    opfp->set_distance(distance);
-    opfp->set_precomputed(precomputed);
+    SupervisedFloatOpf opfp(precomputed, distance);
     return opfp;
 }
 
@@ -203,17 +185,17 @@ PYBIND11_MODULE(pyopf_native, m)
     m.def("Xgn", &Xgn, "Single value deformed number",
           "x"_a = 1.0, "q"_a = 0.9);
 
-    // m.def("SupervisedOpfFloatFactory", &SupervisedOpfFloatProxy::OpfFactory, "SupervisedOpfFloatProxy Factory",
+    // m.def("SupervisedOpfFloatFactory", &SupervisedFloatOpf::OpfFactory, "SupervisedFloatOpf Factory",
     //   "precomputed"_a = false, "distance"_a = opf::euclidean_distance);
-    // m.def("SupervisedOpfFloatFactory", &SupervisedOpfFloatProxy::OpfFactory, "SupervisedOpfFloatProxy Factory",
+    // m.def("SupervisedOpfFloatFactory", &SupervisedFloatOpf::OpfFactory, "SupervisedFloatOpf Factory",
     //   "precomputed"_a = false);
 
-    py::class_<SupervisedOpfFloatProxy>(m, "SupervisedOpfFloatProxy")
+    py::class_<SupervisedFloatOpf>(m, "SupervisedFloatOpf")
         .def(py::init())
-        .def("fit", &SupervisedOpfFloatProxy::fit)
-        .def("predict", &SupervisedOpfFloatProxy::predict)
-//        .def("set_distance", (void)&SupervisedOpfFloatProxy::set_distance)
-//        .def("set_distance", &SupervisedOpfFloatProxy::set_distance)
-        .def_static("SupervisedOpfFloatFactory",  static_cast<SupervisedOpfFloatProxy* (*)(bool , std::string &)>( &OpfFactory), py::return_value_policy::reference)
-        .def_static("SupervisedOpfFloatFactory",   static_cast<SupervisedOpfFloatProxy* (*)(bool , py::object &)>( &OpfFactory), py::return_value_policy::reference);
+        .def("fit", &SupervisedFloatOpf::fit)
+        .def("predict", &SupervisedFloatOpf::predict)
+//        .def("set_distance", (void)&SupervisedFloatOpf::set_distance)
+//        .def("set_distance", &SupervisedFloatOpf::set_distance)
+        .def_static("SupervisedOpfFloatFactory", static_cast<SupervisedFloatOpf (*)(bool , std::string &)>( &OpfFactory), py::return_value_policy::reference)
+        .def_static("SupervisedOpfFloatFactory", static_cast<SupervisedFloatOpf (*)(bool , py::object &)>( &OpfFactory), py::return_value_policy::reference);
 }

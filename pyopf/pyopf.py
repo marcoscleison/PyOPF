@@ -16,58 +16,45 @@ Copyright 2019 PyOPF Contributors
 import pyopf_native as opfn
 from sklearn.preprocessing import LabelEncoder
 
-def raise_(ex):
-    '''
-    Helper to raise exeption form lambda function.
-    :param ex: Exception Object.
-    :return: None.
-    '''
-    raise ex
+# def raise_(ex):
+#     '''
+#     Helper to raise exception from lambda function.
+#     :param ex: Exception Object.
+#     :return: None.
+#     '''
+#     raise ex
 
 
-class OpfAlgorithmNotFound(Exception):
+# class OpfAlgorithmNotFound(Exception):
 
-    def __init__(self, msg):
-        '''
-        Excpetion class for not found Opf Algorithm.
-        :param msg: Exception message.
-        '''
-        super(OpfAlgorithmNotFound, self).__init__(msg)
+#     def __init__(self, msg):
+#         '''
+#         Excpetion class for not found Opf Algorithm.
+#         :param msg: Exception message.
+#         '''
+#         super(OpfAlgorithmNotFound, self).__init__(msg)
 
 
-class OPF(object):
-    def __init__(self, distance=None, precomputed=False, algorithm="supervised"):
+class OPFClassifier(object):
+    def __init__(self, distance=None, precomputed=False):
         '''
         OPF classifier main class constructor.
-        :param distance: python function or string informing the distance. ['euclidean','cos']
+        :param distance: python function or string informing the distance. ['euclidean','cosine']
         :param precomputed: True if the data input is the precomputed pairwise distance.
         :param algorithm: Opf algorithm name. ['supervised']
         '''
-        self.distance = distance
+        
         self.precomputed = precomputed
-        self.algorithm = algorithm
+        self.distance = distance
+        if self.distance is None:
+            self.distance = 'euclidean'
+
+        # Instanciate the machine
+        self.opf = opfn.SupervisedFloatOpf.SupervisedOpfFloatFactory(self.precomputed, self.distance)
 
         # Handle non-integer label types
         self.non_int_label = False
         self.label_encoder = None
-
-        self.algorithm_driver = {
-            "supervised": self._create_supervised_opf,
-            "unsupervised": lambda: raise_(NotImplementedError("Unsupervised OPF is not implemented yet."))
-        }
-
-        if self.algorithm in self.algorithm_driver.keys():
-            self.opf = self.algorithm_driver[self.algorithm]()
-        else:
-            raise OpfAlgorithmNotFound("Opf algorithm not found.")
-
-    def _create_supervised_opf(self):
-
-        if self.distance is not None:
-            opf = opfn.SupervisedOpfFloatProxy.SupervisedOpfFloatFactory(self.precomputed, self.distance)
-        else:
-            opf = opfn.SupervisedOpfFloatProxy.SupervisedOpfFloatFactory(self.precomputed, 'euclidean')
-        return opf
 
     def fit(self, X, y):
         '''
