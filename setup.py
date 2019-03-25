@@ -43,7 +43,7 @@ class get_pybind_include(object):
         import pybind11
         return pybind11.get_include(self.user)
 
-cpp_args = ['-std=c++11','-Ofast','-I/home/marcoscleison/deep/include/site/python3.6/']
+cpp_args = ['-std=c++1y', '-O3']
 link_args= []
 
 ext_modules = [
@@ -59,10 +59,12 @@ ext_modules = [
 setup(
     name='pyopf',
     version='0.0.1',
-    include_dirs=['pybind11/include','pyopf_native_/include','pyopf_native_/LibOPFcpp/include'],
+    include_dirs=['pybind11/include', 'pyopf_native_/include', 'pyopf_native_/LibOPFcpp/include'],
     author='Marcos Cleison and Contributors',
     author_email='marcoscleison.unit@gmail.com',
-    description='Pyton bind for libOPTcpp',
+    description='Pyton bind for libOPFcpp',
     ext_modules=ext_modules,
     packages=['pyopf']
 )
+
+
