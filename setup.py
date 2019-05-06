@@ -44,7 +44,7 @@ class get_pybind_include(object):
         return pybind11.get_include(self.user)
 
 cpp_args = ['-std=c++1y', '-O3', '-fopenmp']
-link_args= []
+link_args= ['-fopenmp']
 
 ext_modules = [
     Extension(
