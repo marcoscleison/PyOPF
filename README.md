@@ -1,5 +1,5 @@
 # PyOPF
-Python binding for LibOPFcpp.
+Python binding for [LibOPFcpp](https://github.com/thierrypin/LibOPFcpp).
 
 # Build
 ```bash
