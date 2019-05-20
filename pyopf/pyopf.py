@@ -89,6 +89,11 @@ class OPFClassifier(object):
 
         return preds
 
+    def get_params(self):
+        return {}
+    def set_params(self, **params):
+        pass
+
     def save_weights(self, driver=None):
         pass
 
