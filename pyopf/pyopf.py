@@ -65,6 +65,8 @@ class OPFClassifier(object):
         '''
         if len(y) == 0:
             raise ValueError("Data size must be higher than 0.")
+        if X.dtype != float:
+            raise ValueError("OPF fit: Data values must be float.")
         # Check label type
         el = y[0]
         if not isinstance(el, int):
@@ -82,6 +84,10 @@ class OPFClassifier(object):
         :param X: Input matrix features.
         :return: Int vector with labels (for supervised algorithm).
         """
+
+        if X.dtype != float:
+            raise ValueError("OPF predict: Data values must be float.")
+
         preds = self.opf.predict(X)
 
         if self.non_int_label:
