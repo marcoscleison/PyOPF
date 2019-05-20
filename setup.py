@@ -22,6 +22,7 @@ from setuptools import setup, find_packages
 from distutils.core import setup, Extension
 from distutils import sysconfig
 
+import pybind11
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
@@ -56,13 +57,16 @@ ext_modules = [
     ),
 ]
 
+pybind_includes = [pybind11.get_include(), pybind11.get_include(True)]
+# 'pybind11/include',
+
 setup(
     name='pyopf',
     version='0.0.1',
-    include_dirs=['pybind11/include', 'pyopf_native_/include', 'pyopf_native_/LibOPFcpp/include'],
+    include_dirs=['pyopf_native_/include', 'pyopf_native_/LibOPFcpp/include'] + pybind_includes,
     author='Marcos Cleison and Contributors',
     author_email='marcoscleison.unit@gmail.com',
-    description='Pyton bind for libOPFcpp',
+    description='Python bind for libOPFcpp',
     ext_modules=ext_modules,
     packages=['pyopf']
 )
