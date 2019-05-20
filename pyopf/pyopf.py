@@ -14,6 +14,7 @@ Copyright 2019 PyOPF Contributors
    limitations under the License.
 """
 import pyopf_native as opfn
+import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
 # def raise_(ex):
@@ -29,7 +30,7 @@ from sklearn.preprocessing import LabelEncoder
 
 #     def __init__(self, msg):
 #         '''
-#         Excpetion class for not found Opf Algorithm.
+#         Exception class for not found Opf Algorithm.
 #         :param msg: Exception message.
 #         '''
 #         super(OpfAlgorithmNotFound, self).__init__(msg)
@@ -65,11 +66,12 @@ class OPFClassifier(object):
         '''
         if len(y) == 0:
             raise ValueError("Data size must be higher than 0.")
-        if X.dtype != float:
+        if X.dtype != np.float32:
             raise ValueError("OPF fit: Data values must be float.")
         # Check label type
         el = y[0]
-        if not isinstance(el, int):
+
+        if not isinstance(el, (np.int64, np.int32, int)):
             self.non_int_label = True
             self.label_encoder = LabelEncoder()
             y_ = self.label_encoder.fit_transform(y)
@@ -85,7 +87,7 @@ class OPFClassifier(object):
         :return: Int vector with labels (for supervised algorithm).
         """
 
-        if X.dtype != float:
+        if X.dtype != np.float32:
             raise ValueError("OPF predict: Data values must be float.")
 
         preds = self.opf.predict(X)
