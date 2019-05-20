@@ -76,7 +76,7 @@ class OPFClassifier(object):
             self.label_encoder = LabelEncoder()
             y_ = self.label_encoder.fit_transform(y)
         else:
-            y_ = y
+            y_ = y #.astype(np.int32)
             
         self.opf.fit(X, y_)
 

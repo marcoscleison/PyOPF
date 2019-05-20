@@ -30,16 +30,6 @@ namespace py = pybind11;
 
 using namespace pybind11::literals;
 
-double Xgn(double x, double q)
-{
-
-    if (q == 1.0)
-    {
-        return x;
-    }
-
-    return (std::pow(2.0 - q, x) - 1.0) / (1.0 - q);
-}
 
 std::function<py::array(py::array, double)> qGenFunc(std::function<double(double, double)> Ops)
 {
@@ -181,21 +171,11 @@ SupervisedFloatOpf OpfFactory(bool precomputed, py::object &distance)
 
 PYBIND11_MODULE(pyopf_native, m)
 {
-    // py::module m("pyopf_native", "OPFcpp natve binding.");
-    m.def("Xgn", &Xgn, "Single value deformed number",
-          "x"_a = 1.0, "q"_a = 0.9);
-
-    // m.def("SupervisedOpfFloatFactory", &SupervisedFloatOpf::OpfFactory, "SupervisedFloatOpf Factory",
-    //   "precomputed"_a = false, "distance"_a = opf::euclidean_distance);
-    // m.def("SupervisedOpfFloatFactory", &SupervisedFloatOpf::OpfFactory, "SupervisedFloatOpf Factory",
-    //   "precomputed"_a = false);
-
     py::class_<SupervisedFloatOpf>(m, "SupervisedFloatOpf")
         .def(py::init())
         .def("fit", &SupervisedFloatOpf::fit)
         .def("predict", &SupervisedFloatOpf::predict)
-//        .def("set_distance", (void)&SupervisedFloatOpf::set_distance)
-//        .def("set_distance", &SupervisedFloatOpf::set_distance)
         .def_static("SupervisedOpfFloatFactory", static_cast<SupervisedFloatOpf (*)(bool , std::string &)>( &OpfFactory), py::return_value_policy::reference)
         .def_static("SupervisedOpfFloatFactory", static_cast<SupervisedFloatOpf (*)(bool , py::object &)>( &OpfFactory), py::return_value_policy::reference);
 }
+
