@@ -89,7 +89,7 @@ class OPFClassifier(object):
 
         return preds
 
-    def get_params(self):
+    def get_params(self, deep=True):
         return {}
     def set_params(self, **params):
         pass
