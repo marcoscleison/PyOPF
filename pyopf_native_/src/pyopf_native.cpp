@@ -222,25 +222,14 @@ class UnsupervisedFloatOpf
 
     void find_best_k(py::array_t<float> &train_data, int kmin, int kmax, int step)
     {
-        const auto test_data_info = test_data.request();
-        auto test_ptr = static_cast<float *>(test_data_info.ptr);
-        opf::Mat<float> train_mat(test_ptr, test_data.shape(0), test_data.shape(1));
+        const auto train_data_info = train_data.request();
+        auto train_ptr = static_cast<float *>(train_data_info.ptr);
+        opf::Mat<float> train_mat(train_ptr, train_data.shape(0), train_data.shape(1));
 
         opf::UnsupervisedOPF<float> opf;
-        opf.find_best_k(train_mat, kmin, kmax, step, this->precomputed, get_distance(distance));
+        opf.find_best_k(train_mat, kmin, kmax, step);
         this->k = opf.get_k();
         this->n_clusters = opf.get_n_clusters();
-    }
-
-    static UnsupervisedFloatOpf find_best_k(py::array_t<float> &train_data, int kmin, int kmax, int step, bool precomputed, py::object &distance)
-    {
-        const auto test_data_info = test_data.request();
-        auto test_ptr = static_cast<float *>(test_data_info.ptr);
-        opf::Mat<float> train_mat(test_ptr, test_data.shape(0), test_data.shape(1));
-
-        opf = opf::UnsupervisedOPF<float>::find_best_k(train_mat, kmin, kmax, step, this->precomputed, distance_adaptor<float>(distance));
-        opf.k = opf.get_k();
-        opf.n_clusters = opf.get_n_clusters();
     }
 
     int get_k() {return this->k;}
@@ -280,7 +269,7 @@ PYBIND11_MODULE(pyopf_native, m)
         .def("fit", &UnsupervisedFloatOpf::fit)
         .def("fit_predict", &UnsupervisedFloatOpf::fit_predict)
         .def("predict", &UnsupervisedFloatOpf::predict)
-        .def("find_best_k", UnsupervisedFloatOpf::find_best_k)
+        .def("find_best_k", &UnsupervisedFloatOpf::find_best_k)
         .def("get_k", &UnsupervisedFloatOpf::get_k)
         .def("get_n_clusters", &UnsupervisedFloatOpf::get_n_clusters)
         .def_static("UnsupervisedOpfFloatFactory", static_cast<UnsupervisedFloatOpf (*)(int, bool, std::string &)>( &UOpfFactory), py::return_value_policy::reference)
