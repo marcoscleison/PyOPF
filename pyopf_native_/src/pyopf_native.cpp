@@ -15,14 +15,14 @@ Copyright 2019 PyOPF Contributors
 */
 #include "pyopf_native.h"
 
-#include "pybind11/pybind11.h"
-#include "pybind11/numpy.h"
-#include "pybind11/stl.h"
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+#include <pybind11/stl.h>
 #include <functional>
 #include <cmath>
 #include <cstdlib>
-#include "libopfcpp/OPF.hpp"
-#include "libopfcpp/util.hpp"
+#include <libopfcpp/OPF.hpp>
+#include <libopfcpp/util.hpp>
 #include <iostream>
 #include <memory>
 #include <cstddef>
@@ -117,7 +117,7 @@ class SupervisedFloatOpf
         this->distance = opf::euclidean_distance<float>;
         this->opf = opf::SupervisedOPF<float>(this->precomputed, this->distance);
     }
-    SupervisedFloatOpf(bool precomputed, py::object distance)
+    SupervisedFloatOpf(bool precomputed, py::object &distance)
     {
         this->precomputed = precomputed;
         this->distance = distance_adaptor<float>(distance);
@@ -169,13 +169,121 @@ SupervisedFloatOpf OpfFactory(bool precomputed, py::object &distance)
     return opfp;
 }
 
+
+class UnsupervisedFloatOpf
+{
+  public:
+    UnsupervisedFloatOpf(int k=5, bool precomputed=false)
+    {
+        this->k = k;
+        this->precomputed = precomputed;
+        this->opf = opf::UnsupervisedOPF<float>(k, this->precomputed, opf::euclidean_distance<float>);
+    }
+    UnsupervisedFloatOpf(int k, bool precomputed, py::object &distance)
+    {
+        this->k = k;
+        this->precomputed = precomputed;
+        this->opf = opf::UnsupervisedOPF<float>(k, this->precomputed, distance_adaptor<float>(distance));
+    }
+
+    UnsupervisedFloatOpf(int k, bool precomputed, std::string &distance)
+    {
+        this->k = k;
+        this->precomputed = precomputed;
+        this->opf = opf::UnsupervisedOPF<float>(k, this->precomputed, get_distance(distance));
+    }
+
+    void fit(py::array_t<float> &train_data)
+    {
+        const auto train_data_info = train_data.request();
+        auto train_ptr = static_cast<float *>(train_data_info.ptr);
+
+        opf::Mat<float> train_mat(train_ptr, train_data.shape(0), train_data.shape(1));
+        this->opf.fit(train_mat);
+    }
+
+    std::vector<int> fit_predict(py::array_t<float> &train_data)
+    {
+        const auto train_data_info = train_data.request();
+        auto train_ptr = static_cast<float *>(train_data_info.ptr);
+
+        opf::Mat<float> train_mat(train_ptr, train_data.shape(0), train_data.shape(1));
+        return this->opf.fit_predict(train_mat);
+    }
+
+    std::vector<int> predict(py::array_t<float> &test_data)
+    {
+        const auto test_data_info = test_data.request();
+        auto test_ptr = static_cast<float *>(test_data_info.ptr);
+
+        opf::Mat<float> test_mat(test_ptr, test_data.shape(0), test_data.shape(1));
+        return this->opf.predict(test_mat);
+    }
+
+    void find_best_k(py::array_t<float> &train_data, int kmin, int kmax, int step)
+    {
+        const auto test_data_info = test_data.request();
+        auto test_ptr = static_cast<float *>(test_data_info.ptr);
+        opf::Mat<float> train_mat(test_ptr, test_data.shape(0), test_data.shape(1));
+
+        opf::UnsupervisedOPF<float> opf;
+        opf.find_best_k(train_mat, kmin, kmax, step, this->precomputed, get_distance(distance));
+        this->k = opf.get_k();
+        this->n_clusters = opf.get_n_clusters();
+    }
+
+    static UnsupervisedFloatOpf find_best_k(py::array_t<float> &train_data, int kmin, int kmax, int step, bool precomputed, py::object &distance)
+    {
+        const auto test_data_info = test_data.request();
+        auto test_ptr = static_cast<float *>(test_data_info.ptr);
+        opf::Mat<float> train_mat(test_ptr, test_data.shape(0), test_data.shape(1));
+
+        opf = opf::UnsupervisedOPF<float>::find_best_k(train_mat, kmin, kmax, step, this->precomputed, distance_adaptor<float>(distance));
+        opf.k = opf.get_k();
+        opf.n_clusters = opf.get_n_clusters();
+    }
+
+    int get_k() {return this->k;}
+    int get_n_clusters() {return this->n_clusters;}
+
+  private:
+    int k;
+    int n_clusters;
+    opf::UnsupervisedOPF<float> opf;
+    bool precomputed = false;
+};
+
+
+UnsupervisedFloatOpf UOpfFactory(int k, bool precomputed, std::string &distance)
+{
+    UnsupervisedFloatOpf opfp(k, precomputed, distance);
+    return opfp;
+}
+
+UnsupervisedFloatOpf UOpfFactory(int k, bool precomputed, py::object &distance)
+{
+    UnsupervisedFloatOpf opfp(k, precomputed, distance);
+    return opfp;
+}
+
 PYBIND11_MODULE(pyopf_native, m)
 {
     py::class_<SupervisedFloatOpf>(m, "SupervisedFloatOpf")
         .def(py::init())
         .def("fit", &SupervisedFloatOpf::fit)
         .def("predict", &SupervisedFloatOpf::predict)
-        .def_static("SupervisedOpfFloatFactory", static_cast<SupervisedFloatOpf (*)(bool , std::string &)>( &OpfFactory), py::return_value_policy::reference)
-        .def_static("SupervisedOpfFloatFactory", static_cast<SupervisedFloatOpf (*)(bool , py::object &)>( &OpfFactory), py::return_value_policy::reference);
+        .def_static("SupervisedOpfFloatFactory", static_cast<SupervisedFloatOpf (*)(bool, std::string &)>( &OpfFactory), py::return_value_policy::reference)
+        .def_static("SupervisedOpfFloatFactory", static_cast<SupervisedFloatOpf (*)(bool, py::object &)>( &OpfFactory), py::return_value_policy::reference);
+    
+    py::class_<UnsupervisedFloatOpf>(m, "UnsupervisedFloatOpf")
+        .def(py::init())
+        .def("fit", &UnsupervisedFloatOpf::fit)
+        .def("fit_predict", &UnsupervisedFloatOpf::fit_predict)
+        .def("predict", &UnsupervisedFloatOpf::predict)
+        .def("find_best_k", UnsupervisedFloatOpf::find_best_k)
+        .def("get_k", &UnsupervisedFloatOpf::get_k)
+        .def("get_n_clusters", &UnsupervisedFloatOpf::get_n_clusters)
+        .def_static("UnsupervisedOpfFloatFactory", static_cast<UnsupervisedFloatOpf (*)(int, bool, std::string &)>( &UOpfFactory), py::return_value_policy::reference)
+        .def_static("UnsupervisedOpfFloatFactory", static_cast<UnsupervisedFloatOpf (*)(int, bool, py::object &)>( &UOpfFactory), py::return_value_policy::reference);
 }
 

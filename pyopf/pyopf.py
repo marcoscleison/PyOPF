@@ -17,23 +17,6 @@ import pyopf_native as opfn
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
-# def raise_(ex):
-#     '''
-#     Helper to raise exception from lambda function.
-#     :param ex: Exception Object.
-#     :return: None.
-#     '''
-#     raise ex
-
-
-# class OpfAlgorithmNotFound(Exception):
-
-#     def __init__(self, msg):
-#         '''
-#         Exception class for not found Opf Algorithm.
-#         :param msg: Exception message.
-#         '''
-#         super(OpfAlgorithmNotFound, self).__init__(msg)
 
 
 class OPFClassifier(object):
@@ -99,6 +82,82 @@ class OPFClassifier(object):
 
     def get_params(self, deep=True):
         return {}
+    def set_params(self, **params):
+        pass
+
+    def save_weights(self, driver=None):
+        pass
+
+    def load_weights(self, driver):
+        pass
+
+
+class OPFClustering(object):
+    def __init__(self, k=5, distance=None, precomputed=False):
+        '''
+        OPF clustering main class constructor.
+        :param distance: python function or string informing the distance. ['euclidean','cosine']
+        :param precomputed: True if the data input is the precomputed pairwise distance.
+        :param algorithm: Opf algorithm name. ['supervised']
+        '''
+        
+        self.k = k
+        self.n_clusters = 0
+        self.precomputed = precomputed
+        self.distance = distance
+        if self.distance is None:
+            self.distance = 'euclidean'
+
+        # Instanciate the machine
+        self.opf = opfn.UnsupervisedFloatOpf.UnsupervisedOpfFloatFactory(self.k, self.precomputed, self.distance)
+
+
+    def fit(self, X):
+        '''
+        Trains the Opf clustering using.
+        :param X: Input features matrix.
+        :return: None
+        '''
+        if X.dtype != np.float32:
+            raise ValueError("OPF fit: Data values must be float.")
+        # Check label type
+            
+        self.opf.fit(X)
+        self.n_clusters = self.opf.get_n_clusters()
+    
+    def fit_predict(self, X):
+        '''
+        Trains the Opf clustering using.
+        :param X: Input features matrix.
+        :return: None
+        '''
+        if X.dtype != np.float32:
+            raise ValueError("OPF fit: Data values must be float.")
+        # Check label type
+            
+        return self.opf.fit_predict(X)
+        self.n_clusters = self.opf.get_n_clusters()
+
+    def predict(self, X):
+        """
+        Classifies X
+        :param X: Input matrix features.
+        :return: Int vector with labels (for supervised algorithm).
+        """
+
+        if X.dtype != np.float32:
+            raise ValueError("OPF predict: Data values must be float.")
+
+        return self.opf.predict(X)
+    
+    def find_best_k(self, train_data, kmin=2, kmax=20, step=2):
+        self.opf.UnsupervisedFloatOpf.find_best_k(train_data, kmin, kmax, step)
+        self.k = self.opf.get_k()
+        self.n_clusters = self.opf.get_n_clusters()
+
+    def get_params(self, deep=True):
+        return {}
+    
     def set_params(self, **params):
         pass
 
