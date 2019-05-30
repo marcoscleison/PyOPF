@@ -197,8 +197,8 @@ class UnsupervisedFloatOpf
     {
         const auto train_data_info = train_data.request();
         auto train_ptr = static_cast<float *>(train_data_info.ptr);
-
         opf::Mat<float> train_mat(train_ptr, train_data.shape(0), train_data.shape(1));
+
         this->opf.fit(train_mat);
     }
 
@@ -206,8 +206,8 @@ class UnsupervisedFloatOpf
     {
         const auto train_data_info = train_data.request();
         auto train_ptr = static_cast<float *>(train_data_info.ptr);
-
         opf::Mat<float> train_mat(train_ptr, train_data.shape(0), train_data.shape(1));
+
         return this->opf.fit_predict(train_mat);
     }
 
@@ -215,8 +215,8 @@ class UnsupervisedFloatOpf
     {
         const auto test_data_info = test_data.request();
         auto test_ptr = static_cast<float *>(test_data_info.ptr);
-
         opf::Mat<float> test_mat(test_ptr, test_data.shape(0), test_data.shape(1));
+
         return this->opf.predict(test_mat);
     }
 
@@ -226,8 +226,7 @@ class UnsupervisedFloatOpf
         auto train_ptr = static_cast<float *>(train_data_info.ptr);
         opf::Mat<float> train_mat(train_ptr, train_data.shape(0), train_data.shape(1));
 
-        opf::UnsupervisedOPF<float> opf;
-        opf.find_best_k(train_mat, kmin, kmax, step);
+        this->opf.find_best_k(train_mat, kmin, kmax, step);
         this->k = opf.get_k();
         this->n_clusters = opf.get_n_clusters();
     }
