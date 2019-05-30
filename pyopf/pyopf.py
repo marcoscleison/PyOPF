@@ -135,8 +135,9 @@ class OPFClustering(object):
             raise ValueError("OPF fit: Data values must be float.")
         # Check label type
             
-        return self.opf.fit_predict(X)
+        preds = self.opf.fit_predict(X)
         self.n_clusters = self.opf.get_n_clusters()
+        return preds
 
     def predict(self, X):
         """
@@ -151,7 +152,9 @@ class OPFClustering(object):
         return self.opf.predict(X)
     
     def find_best_k(self, train_data, kmin=2, kmax=20, step=2):
-        self.opf.UnsupervisedFloatOpf.find_best_k(train_data, kmin, kmax, step)
+        if train_data.dtype != np.float32:
+            raise ValueError("OPF find_best_k: Data values must be float.")
+        self.opf.find_best_k(train_data, kmin, kmax, step)
         self.k = self.opf.get_k()
         self.n_clusters = self.opf.get_n_clusters()
 
