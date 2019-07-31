@@ -24,8 +24,22 @@ pip uninstall pyopf
 # Usage
 
 ```python
-from pyopf import OPF
-opf = OPF()
+from pyopf import OPFClassifier, OPFClustering
+
+# Supervised classification
+opf = OPFClassifier()
 opf.fit(x,y)
 pred = opf.predict(x)
+
+# Unsupervised classification
+opfc = OPFClustering(k = 20)
+
+# Either just run it with a given value for k:
+clusters = opfc.fit_transform(x)
+# or find the best one (at a higher computational cost):
+opfc.find_best_k(x)
+clusters = opfc.predict(x)
+
+
+
 ```

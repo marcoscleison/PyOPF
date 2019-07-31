@@ -151,7 +151,7 @@ class OPFClustering(object):
 
         return self.opf.predict(X)
     
-    def find_best_k(self, train_data, kmin=2, kmax=20, step=2):
+    def find_best_k(self, train_data, kmin=2, kmax=202, step=5):
         if train_data.dtype != np.float32:
             raise ValueError("OPF find_best_k: Data values must be float.")
         self.opf.find_best_k(train_data, kmin, kmax, step)
