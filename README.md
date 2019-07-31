@@ -1,5 +1,14 @@
+
 # PyOPF
 Python 3 binding for [LibOPFcpp](https://github.com/thierrypin/LibOPFcpp).
+
+# Dependencies
+
+### System
+- OpenMP
+### Python
+- Scikit-learn
+- Numpy
 
 # Build
 ```bash
