@@ -20,7 +20,7 @@ from sklearn.preprocessing import LabelEncoder
 
 
 class OPFClassifier(object):
-    def __init__(self, distance=None, precomputed=False):
+    def __init__(self, copy=False, distance=None, precomputed=False):
         '''
         OPF classifier main class constructor.
         :param distance: python function or string informing the distance. ['euclidean','cosine']
@@ -32,9 +32,10 @@ class OPFClassifier(object):
         self.distance = distance
         if self.distance is None:
             self.distance = 'euclidean'
+        self.copy = copy
 
         # Instanciate the machine
-        self.opf = opfn.SupervisedFloatOpf.SupervisedOpfFloatFactory(self.precomputed, self.distance)
+        self.opf = opfn.SupervisedFloatOpf.SupervisedOpfFloatFactory(self.precomputed, self.distance, self.copy)
 
         # Handle non-integer label types
         self.non_int_label = False
@@ -93,7 +94,7 @@ class OPFClassifier(object):
 
 
 class OPFClustering(object):
-    def __init__(self, k=5, distance=None, precomputed=False):
+    def __init__(self, k=5, anomaly=False, thresh=.1, copy=False, distance=None, precomputed=False):
         '''
         OPF clustering main class constructor.
         :param distance: python function or string informing the distance. ['euclidean','cosine']
@@ -102,14 +103,17 @@ class OPFClustering(object):
         '''
         
         self.k = k
+        self.anomaly = anomaly
+        self.thresh = thresh
         self.n_clusters = 0
         self.precomputed = precomputed
         self.distance = distance
+        self.copy = copy
         if self.distance is None:
             self.distance = 'euclidean'
 
         # Instanciate the machine
-        self.opf = opfn.UnsupervisedFloatOpf.UnsupervisedOpfFloatFactory(self.k, self.precomputed, self.distance)
+        self.opf = opfn.UnsupervisedFloatOpf.UnsupervisedOpfFloatFactory(self.k, self.anomaly, self.thresh, self.precomputed, self.distance, self.copy)
 
 
     def fit(self, X):
@@ -157,6 +161,27 @@ class OPFClustering(object):
         self.opf.find_best_k(train_data, kmin, kmax, step)
         self.k = self.opf.get_k()
         self.n_clusters = self.opf.get_n_clusters()
+
+    @staticmethod
+    def unserialize(data):
+        opf = OPFClustering()
+        c_opf = opfn.UnsupervisedFloatOpf.unserialize(data)
+
+        opf.k = c_opf.get_k()
+        opf.anomaly = c_opf.get_anomaly()
+        opf.thresh = c_opf.get_thresh()
+        opf.n_clusters = c_opf.get_n_clusters()
+        opf.precomputed = c_opf.get_precomputed()
+        opf.distance = 'euclidean'
+
+        opf.opf = c_opf
+
+        return opf
+
+    def __reduce__(self, flags=0):
+        data = self.opf.serialize(flags)
+        
+        return (OPFClustering.unserialize, (data,))
 
     def get_params(self, deep=True):
         return {}
