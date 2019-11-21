@@ -81,6 +81,24 @@ class OPFClassifier(object):
 
         return preds
 
+    @staticmethod
+    def unserialize(data):
+        opf = OPFClassifier()
+        c_opf = opfn.SupervisedFloatOpf.unserialize(data)
+
+        opf.precomputed = c_opf.get_precomputed()
+        opf.distance = 'euclidean' # TODO
+
+        opf.opf = c_opf
+
+        return opf
+
+    def __reduce__(self, flags=0):
+        data = self.opf.serialize(flags)
+        
+        return (OPFClassifier.unserialize, (data,))
+
+
     def get_params(self, deep=True):
         return {}
     def set_params(self, **params):

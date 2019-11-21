@@ -139,56 +139,79 @@ opf::distance_function<float> get_distance(std::string& distance)
 class SupervisedFloatOpf
 {
   public:
-    SupervisedFloatOpf(bool copy = false)
-    {
-        this->distance = opf::euclidean_distance<float>;
-        this->opf = opf::SupervisedOPF<float>(false, this->distance);
-        this->copy = copy;
-    }
-    SupervisedFloatOpf(bool precomputed, py::object &distance, bool copy=false)
-    {
-        this->distance = distance_adaptor<float>(distance);
-        this->opf = opf::SupervisedOPF<float>(precomputed, this->distance);
-        this->copy = copy;
-    }
+    // Constructors
+    SupervisedFloatOpf(bool copy=false);
+    SupervisedFloatOpf(bool precomputed, py::object &distance, bool copy=false);
+    SupervisedFloatOpf(bool precomputed, std::string &distance, bool copy=false);
 
-    SupervisedFloatOpf(bool precomputed, std::string &distance, bool copy=false)
-    {
-        this->distance = get_distance(distance);
-        this->opf = opf::SupervisedOPF<float>(precomputed, this->distance);
-        this->copy = copy;
-    }
+    // Functionalities
+    void fit(py::array_t<float> &train_data, std::vector<int> &labels);
+    std::vector<int> predict(py::array_t<float> &test_data);
 
-    void fit(py::array_t<float> &train_data, std::vector<int> &labels)
-    {
-        this->train_mat = asMat<float>(train_data, copy);
-        this->opf.fit(train_mat, labels);
-    }
+    // Assignment operator
+    SupervisedFloatOpf operator=(const SupervisedFloatOpf& other);
 
-    std::vector<int> predict(py::array_t<float> &test_data)
-    {
-        opf::Mat<float> test_mat = asMat<float>(test_data);
-        return this->opf.predict(test_mat);
-    }
+    bool get_precomputed() {return this->opf.get_precomputed();}
 
-    std::string serialize(uchar flags=0){return this->opf.serialize(flags);}
-
-    static SupervisedFloatOpf unserialize(std::string& contents)
-    {
-        SupervisedFloatOpf out;
-        out.opf = opf::SupervisedOPF<float>::unserialize(contents);
-        return std::move(out);
-    }
+    // Serialization
+    py::bytes serialize(uchar flags=0);
+    static SupervisedFloatOpf unserialize(py::bytes& contents);
 
   private:
+    opf::Mat<float> train_data;
     opf::SupervisedOPF<float> opf;
-    opf::distance_function<float> distance = nullptr;
-
-    opf::Mat<float> train_mat;
 
     bool copy;
 };
 
+SupervisedFloatOpf::SupervisedFloatOpf(bool copy) : copy(copy)
+{
+    this->opf = opf::SupervisedOPF<float>(false, opf::euclidean_distance<float>);
+}
+
+SupervisedFloatOpf::SupervisedFloatOpf(bool precomputed, py::object &distance, bool copy) : copy(copy)
+{
+    this->opf = opf::SupervisedOPF<float>(precomputed, distance_adaptor<float>(distance));
+}
+
+SupervisedFloatOpf::SupervisedFloatOpf(bool precomputed, std::string &distance, bool copy) : copy(copy)
+{
+    this->opf = opf::SupervisedOPF<float>(precomputed, get_distance(distance));
+}
+
+void SupervisedFloatOpf::fit(py::array_t<float> &train_data, std::vector<int> &labels)
+{
+    this->train_data = asMat<float>(train_data, copy);
+    this->opf.fit(this->train_data, labels);
+}
+
+std::vector<int> SupervisedFloatOpf::predict(py::array_t<float> &test_data)
+{
+    opf::Mat<float> test_mat = asMat<float>(test_data);
+    return this->opf.predict(test_mat);
+}
+
+SupervisedFloatOpf SupervisedFloatOpf::operator=(const SupervisedFloatOpf& other)
+{
+    if (this != &other)
+    {
+        this->train_data = other.train_data;
+        this->opf = other.opf;
+    }
+    return *this;
+}
+
+py::bytes SupervisedFloatOpf::serialize(uchar flags)
+{
+    return py::bytes(this->opf.serialize(flags));
+}
+
+SupervisedFloatOpf SupervisedFloatOpf::unserialize(py::bytes& contents)
+{
+    SupervisedFloatOpf out;
+    out.opf = opf::SupervisedOPF<float>::unserialize(contents);
+    return std::move(out);
+}
 
 SupervisedFloatOpf OpfFactory(bool precomputed, std::string &distance, bool copy=false)
 {
@@ -228,7 +251,7 @@ class UnsupervisedFloatOpf
     // Getters and setters
     int get_k() {return this->opf.get_k();}
     int get_n_clusters() {return this->opf.get_n_clusters();}
-    float get_anomaly() {return this->opf.get_anomaly();}
+    bool get_anomaly() {return this->opf.get_anomaly();}
     float get_thresh() {return this->opf.get_thresh();}
     void set_thresh(float thresh) {this->opf.set_thresh(thresh);}
     bool get_precomputed() {return this->opf.get_precomputed();}
@@ -257,13 +280,13 @@ UnsupervisedFloatOpf::UnsupervisedFloatOpf(int k, bool anomaly, float thresh, bo
 
 void UnsupervisedFloatOpf::fit(py::array_t<float> &train_data)
 {
-    this->train_data = asMat<float>(train_data);
+    this->train_data = asMat<float>(train_data, this->copy);
     this->opf.fit(this->train_data);
 }
 
 std::vector<int> UnsupervisedFloatOpf::fit_predict(py::array_t<float> &train_data)
 {
-    this->train_data = asMat<float>(train_data);
+    this->train_data = asMat<float>(train_data, this->copy);
     return this->opf.fit_predict(this->train_data);
 }
 
@@ -285,7 +308,7 @@ UnsupervisedFloatOpf UnsupervisedFloatOpf::operator=(const UnsupervisedFloatOpf&
 
 void UnsupervisedFloatOpf::find_best_k(py::array_t<float> &train_data, int kmin, int kmax, int step)
 {
-    this->train_data = asMat<float>(train_data);
+    this->train_data = asMat<float>(train_data, this->copy);
     this->opf.find_best_k(this->train_data, kmin, kmax, step);
 }
 
@@ -321,8 +344,9 @@ PYBIND11_MODULE(pyopf_native, m)
         .def(py::init())
         .def("fit", &SupervisedFloatOpf::fit)
         .def("predict", &SupervisedFloatOpf::predict)
+        .def("get_precomputed", &SupervisedFloatOpf::get_precomputed)
         .def("serialize", &SupervisedFloatOpf::serialize)
-        .def_static("unserialize", static_cast<SupervisedFloatOpf (*)(std::string &)>(&SupervisedFloatOpf::unserialize), py::return_value_policy::reference)
+        .def_static("unserialize", static_cast<SupervisedFloatOpf (*)(py::bytes &)>(&SupervisedFloatOpf::unserialize), py::return_value_policy::reference)
         .def_static("SupervisedOpfFloatFactory", static_cast<SupervisedFloatOpf (*)(bool, std::string &, bool)>(&OpfFactory), py::return_value_policy::reference)
         .def_static("SupervisedOpfFloatFactory", static_cast<SupervisedFloatOpf (*)(bool, py::object &, bool)>(&OpfFactory), py::return_value_policy::reference);
     
