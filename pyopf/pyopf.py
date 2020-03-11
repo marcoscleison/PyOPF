@@ -27,7 +27,7 @@ class OPFClassifier(object):
         :param precomputed: True if the data input is the precomputed pairwise distance.
         :param algorithm: Opf algorithm name. ['supervised']
         '''
-        
+
         self.precomputed = precomputed
         self.distance = distance
         if self.distance is None:
@@ -51,7 +51,7 @@ class OPFClassifier(object):
         if len(y) == 0:
             raise ValueError("Data size must be higher than 0.")
         if X.dtype != np.float32:
-            raise ValueError("OPF fit: Data values must be float.")
+            raise ValueError("OPF fit: Data values must be float32.")
         # Check label type
         el = y[0]
 
@@ -61,7 +61,7 @@ class OPFClassifier(object):
             y_ = self.label_encoder.fit_transform(y)
         else:
             y_ = y #.astype(np.int32)
-            
+
         self.opf.fit(X, y_)
 
     def predict(self, X):
@@ -72,7 +72,7 @@ class OPFClassifier(object):
         """
 
         if X.dtype != np.float32:
-            raise ValueError("OPF predict: Data values must be float.")
+            raise ValueError("OPF predict: Data values must be float32.")
 
         preds = self.opf.predict(X)
 
@@ -95,12 +95,13 @@ class OPFClassifier(object):
 
     def __reduce__(self, flags=0):
         data = self.opf.serialize(flags)
-        
+
         return (OPFClassifier.unserialize, (data,))
 
 
     def get_params(self, deep=True):
         return {}
+
     def set_params(self, **params):
         pass
 
@@ -119,7 +120,7 @@ class OPFClustering(object):
         :param precomputed: True if the data input is the precomputed pairwise distance.
         :param algorithm: Opf algorithm name. ['supervised']
         '''
-        
+
         self.k = k
         self.anomaly = anomaly
         self.thresh = thresh
@@ -141,12 +142,12 @@ class OPFClustering(object):
         :return: None
         '''
         if X.dtype != np.float32:
-            raise ValueError("OPF fit: Data values must be float.")
+            raise ValueError("OPF fit: Data values must be float32.")
         # Check label type
-            
+
         self.opf.fit(X)
         self.n_clusters = self.opf.get_n_clusters()
-    
+
     def fit_predict(self, X):
         '''
         Trains the Opf clustering using.
@@ -154,9 +155,9 @@ class OPFClustering(object):
         :return: None
         '''
         if X.dtype != np.float32:
-            raise ValueError("OPF fit: Data values must be float.")
+            raise ValueError("OPF fit_predict: Data values must be float32.")
         # Check label type
-            
+
         preds = self.opf.fit_predict(X)
         self.n_clusters = self.opf.get_n_clusters()
         return preds
@@ -169,13 +170,14 @@ class OPFClustering(object):
         """
 
         if X.dtype != np.float32:
-            raise ValueError("OPF predict: Data values must be float.")
+            raise ValueError("OPF predict: Data values must be float32.")
 
         return self.opf.predict(X)
-    
+
     def find_best_k(self, train_data, kmin=2, kmax=202, step=5):
         if train_data.dtype != np.float32:
-            raise ValueError("OPF find_best_k: Data values must be float.")
+            raise ValueError("OPF find_best_k: Data values must be float32.")
+
         self.opf.find_best_k(train_data, kmin, kmax, step)
         self.k = self.opf.get_k()
         self.n_clusters = self.opf.get_n_clusters()
@@ -198,12 +200,12 @@ class OPFClustering(object):
 
     def __reduce__(self, flags=0):
         data = self.opf.serialize(flags)
-        
+
         return (OPFClustering.unserialize, (data,))
 
     def get_params(self, deep=True):
         return {}
-    
+
     def set_params(self, **params):
         pass
 
